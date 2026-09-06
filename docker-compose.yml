@@ -38,15 +38,4 @@ services:
         published: 1900
         protocol: udp
         mode: host
-    networks:
-      ddospot:
-        ipv4_address: 172.18.0.2
-
-networks:
-  ddospot:
-    name: 'ddospot-net'
-    driver: "bridge"
-    ipam:
-      config:
-        - subnet: 172.18.0.0/24
 
