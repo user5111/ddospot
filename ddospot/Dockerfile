@@ -1,12 +1,16 @@
-FROM alpine:edge
-MAINTAINER aelth aelthegrin@gmail.com
+FROM alpine:3.18
+LABEL maintainer="aelthegrin@gmail.com"
 
 # Install prerequisites
 RUN apk --update --no-cache add python3 python3-dev build-base libcap py3-pip git
 
 # Add new user and group under which ddospot will run
-RUN addgroup -g 1000 ddospot 
-RUN adduser -D -s /sbin/nologin -u 1000 -G ddospot ddospot 
+RUN addgroup -g 1000 ddospot
+RUN adduser -D -s /sbin/nologin -u 1000 -G ddospot ddospot
+
+# Create virtual environment, bypass externally‑managed‑environment restriction
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Create DDoSPot directory and copy source
 COPY . /ddospot
@@ -16,10 +20,7 @@ RUN pip3 install --upgrade pip
 RUN pip3 install -r /ddospot/requirements.txt
 
 # Fix permissions
-RUN chown ddospot.ddospot -R /ddospot/*
-
-# Enable capabilities on python interpreter in virtualenv in order to enable unprivileged user to bind on privileged ports
-#RUN setcap 'cap_net_bind_service=+ep' env/bin/python
+RUN chown ddospot:ddospot -R /ddospot
 
 # Expose relevant udp port
 EXPOSE 19/udp 53/udp 123/udp 161/udp 1900/udp
@@ -28,3 +29,4 @@ EXPOSE 19/udp 53/udp 123/udp 161/udp 1900/udp
 USER ddospot
 WORKDIR /ddospot
 CMD ["python3", "ddospot.py", "-n"]
+

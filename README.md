@@ -145,7 +145,7 @@ packet_threshold = 10
 # Default: 5 minutes
 new_attack_detection_interval = 5
 ```
-- **alerting** - mail notification parameters. Notifications will only be generated if the victim of an attack (IP address) is located in the specified country.
+- **alerting** - mail notification parameters. Notifications will only be generated if the victim of an attack (IP address) is located in the specified country. All mail settings can also be provided through environment variables (`DDOSPOT_MAIL_HOST`, `DDOSPOT_MAIL_PORT`, `DDOSPOT_MAIL_USERNAME`, `DDOSPOT_MAIL_PASSWORD`, `DDOSPOT_MAIL_SEC`, `DDOSPOT_MAIL_FROM`, `DDOSPOT_MAIL_TO`), which take precedence over the configuration file - this avoids storing credentials in it. When using *Docker Compose*, these variables are loaded from the `.env` file in the project root (see `.env.example`).
 ```
 [alerting]
 enabled = false

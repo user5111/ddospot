@@ -4,5 +4,5 @@ schedule
 SQLAlchemy
 tabulate
 Twisted
-python-geoip
+geoip2
 python-geoip-geolite2

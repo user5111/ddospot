@@ -1,41 +1,52 @@
-version: '3.5'
 services:
-    ddospot:
-        build:
-            context: ./ddospot
-        image: aelth/simpledns
-        volumes:
-            - ./ddospot/bl:/ddospot/bl
-            - ./ddospot/db:/ddospot/db
-            - ./ddospot/logs:/ddospot/logs
-        ports:
-            - target: 19
-              published: 19 
-              protocol: udp
-              mode: host
-            - target: 53
-              published: 54
-              protocol: udp
-              mode: host
-            - target: 123
-              published: 123
-              protocol: udp
-              mode: host
-            - target: 161
-              published: 161
-              protocol: udp
-              mode: host
-            - target: 1900
-              published: 1901
-              protocol: udp
-              mode: host
-        networks:
-            ddospot:
-                ipv4_address: 172.18.0.2
+  ddospot:
+    build:
+      context: ./ddospot
+    image: aelth/simpledns
+    cap_add:
+      - CAP_NET_BIND_SERVICE
+    environment:
+      DDOSPOT_MAIL_HOST: ${DDOSPOT_MAIL_HOST:-}
+      DDOSPOT_MAIL_PORT: ${DDOSPOT_MAIL_PORT:-}
+      DDOSPOT_MAIL_USERNAME: ${DDOSPOT_MAIL_USERNAME:-}
+      DDOSPOT_MAIL_PASSWORD: ${DDOSPOT_MAIL_PASSWORD:-}
+      DDOSPOT_MAIL_SEC: ${DDOSPOT_MAIL_SEC:-}
+      DDOSPOT_MAIL_FROM: ${DDOSPOT_MAIL_FROM:-}
+      DDOSPOT_MAIL_TO: ${DDOSPOT_MAIL_TO:-}
+    volumes:
+      - ./ddospot/bl:/ddospot/bl
+      - ./ddospot/db:/ddospot/db
+      - ./ddospot/logs:/ddospot/logs
+    ports:
+      - target: 19
+        published: 19
+        protocol: udp
+        mode: host
+      - target: 53
+        published: 53
+        protocol: udp
+        mode: host
+      - target: 123
+        published: 123
+        protocol: udp
+        mode: host
+      - target: 161
+        published: 161
+        protocol: udp
+        mode: host
+      - target: 1900
+        published: 1900
+        protocol: udp
+        mode: host
+    networks:
+      ddospot:
+        ipv4_address: 172.18.0.2
+
 networks:
-    ddospot:
-        name: 'ddospot-net'
-        driver: "bridge"
-        ipam:
-            config:
-                - subnet: 172.18.0.1/24
+  ddospot:
+    name: 'ddospot-net'
+    driver: "bridge"
+    ipam:
+      config:
+        - subnet: 172.18.0.0/24
+

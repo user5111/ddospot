@@ -1,12 +1,14 @@
 import collections
 import datetime
-import geoip
 import logging
 import os
 import smtplib
 import socket
 import threading
 import time
+
+import geoip2.database
+import _geoip_geolite2
 
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -17,15 +19,16 @@ class Alerter(object):
     def __init__(self, conf, name):
         self.name = name
         self.logger = logging.getLogger(name)
-        mail_host = conf.get('alerting', 'mail_host')
-        mail_port = conf.getint('alerting', 'mail_port')
-        mail_username = conf.get('alerting', 'mail_username')
-        mail_password = conf.get('alerting', 'mail_password')
-        mail_sec = conf.get('alerting', 'mail_sec')
+        mail_host = self._conf_or_env(conf, 'mail_host', 'DDOSPOT_MAIL_HOST')
+        mail_port = int(self._conf_or_env(conf, 'mail_port', 'DDOSPOT_MAIL_PORT'))
+        mail_username = self._conf_or_env(conf, 'mail_username', 'DDOSPOT_MAIL_USERNAME')
+        mail_password = self._conf_or_env(conf, 'mail_password', 'DDOSPOT_MAIL_PASSWORD')
+        mail_sec = self._conf_or_env(conf, 'mail_sec', 'DDOSPOT_MAIL_SEC')
         if mail_sec == 'None':
             mail_sec = None
-        self.mail_from = conf.get('alerting', 'mail_from')
-        self.mail_to_list = [e.strip() for e in conf.get('alerting', 'mail_to').split(',')]
+        self.mail_from = self._conf_or_env(conf, 'mail_from', 'DDOSPOT_MAIL_FROM')
+        mail_to = self._conf_or_env(conf, 'mail_to', 'DDOSPOT_MAIL_TO')
+        self.mail_to_list = [e.strip() for e in mail_to.split(',')]
         self.mail_subject = conf.get('alerting', 'mail_subject')
         self.trigger_country_list = [e.strip() for e in conf.get('alerting', 'trigger_countries').split(',')]
         self.notification_rate = conf.getint('alerting', 'notification_rate')
@@ -44,14 +47,31 @@ class Alerter(object):
                                  mail_port,
                                  mail_username,
                                  mail_password,
-                                 mail_sec
+                                 mail_sec,
+                                 conf.getint('alerting', 'mail_timeout', fallback=30)
                                  )
         except MailerError as msg:
             self.logger.error('Error creating alerter: %s' % (msg))
 
+        try:
+            db_path = os.path.join(
+                os.path.dirname(_geoip_geolite2.__file__),
+                _geoip_geolite2.database_name)
+            self.geoip_reader = geoip2.database.Reader(db_path)
+        except Exception as msg:
+            self.logger.error('Error initializing GeoIP reader: %s' % (msg))
+            self.geoip_reader = None
+
         t = threading.Thread(target=self._flush_notifications)
         t.daemon = True
         t.start()
+
+    @staticmethod
+    def _conf_or_env(conf, option, env_var):
+        value = os.environ.get(env_var)
+        if value:
+            return value
+        return conf.get('alerting', option)
 
     def alert(self, ip, port, msg=None):
         # alerting functionality is rather slow because of geoip lookup and name resolution
@@ -61,17 +81,21 @@ class Alerter(object):
         t.start()
 
     def _do_alert(self, ip, port, msg=None):
-        for country in self.trigger_country_list:
-            # check if IP belongs to currently monitored country
-            match = geoip.geolite2.lookup(ip)
-            if match and match.country == country:
-                host = self._get_host(ip)
+        if not self.geoip_reader:
+            return
 
-                # user can specify custom message
-                # if no msg has been specified, send predefined message
-                if msg is None:
-                    msg = '%s detected attack on %s (%s) port %d @ %s' % (self.name, ip, host, port, datetime.datetime.now())
-                self.notification_queue.append(msg)
+        try:
+            response = self.geoip_reader.city(ip)
+            ip_country = response.country.iso_code
+        except Exception:
+            return
+
+        if ip_country in self.trigger_country_list:
+            host = self._get_host(ip)
+
+            if msg is None:
+                msg = '%s detected attack on %s (%s) port %d @ %s' % (self.name, ip, host, port, datetime.datetime.now())
+            self.notification_queue.append(msg)
 
     # rate limiting based on https://stackoverflow.com/questions/667508/whats-a-good-rate-limiting-algorithm#
     def _flush_notifications(self):
@@ -119,7 +143,7 @@ class MailerError(Exception):
 
 
 class Mailer(object):
-    def __init__(self, host='localhost', port=0, username=None, password=None, smtp_sec=None, timeout=5, pem_priv_key=None, pem_cert_chain=None):
+    def __init__(self, host='localhost', port=0, username=None, password=None, smtp_sec=None, timeout=30, pem_priv_key=None, pem_cert_chain=None):
         self.host = host
 
         # SMTP security is either None (plain-text: port 25), SSL (465) or STARTTLS (port 587)
