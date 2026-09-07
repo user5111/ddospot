@@ -1,11 +1,14 @@
 import collections
 import datetime
+import hashlib
 import logging
 import os
+import shutil
 import smtplib
 import socket
 import threading
 import time
+import urllib.request
 
 import geoip2.database
 
@@ -53,7 +56,8 @@ class Alerter(object):
             self.logger.error('Error creating alerter: %s' % (msg))
 
         try:
-            db_path = os.environ.get('DDOSPOT_GEOIP_DB') or 'data/GeoIP.mmdb'
+            db_path = os.environ.get('DDOSPOT_GEOIP_DB') or 'db/GeoIP.mmdb'
+            self._ensure_geoip_db(db_path)
             self.geoip_reader = geoip2.database.Reader(db_path)
         except Exception as msg:
             self.logger.error('Error initializing GeoIP reader: %s' % (msg))
@@ -69,6 +73,23 @@ class Alerter(object):
         if value:
             return value
         return conf.get('alerting', option)
+
+    def _ensure_geoip_db(self, db_path):
+        if os.path.exists(db_path) and os.path.getsize(db_path) > 0:
+            return
+        base = 'https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release'
+        src = 'Country-without-asn.mmdb'
+        os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+        tmp = db_path + '.tmp'
+        self.logger.info('GeoIP mmdb not found at %s, downloading from %s/%s' % (db_path, base, src))
+        urllib.request.urlretrieve('%s/%s' % (base, src), tmp)
+        expected = urllib.request.urlopen('%s/%s.sha256sum' % (base, src)).read().decode().split()[0]
+        actual = hashlib.sha256(open(tmp, 'rb').read()).hexdigest()
+        if actual != expected:
+            os.remove(tmp)
+            raise Exception('GeoIP mmdb sha256 mismatch: expected %s, got %s' % (expected, actual))
+        shutil.move(tmp, db_path)
+        self.logger.info('GeoIP mmdb downloaded and verified (%d bytes)' % os.path.getsize(db_path))
 
     def alert(self, ip, port, msg=None):
         # alerting functionality is rather slow because of geoip lookup and name resolution
