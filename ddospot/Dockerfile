@@ -19,6 +19,14 @@ COPY . /ddospot
 RUN pip3 install --upgrade pip
 RUN pip3 install -r /ddospot/requirements.txt
 
+# Download fresh GeoIP mmdb from Loyalsoldier/geoip (updated weekly every Thursday)
+RUN mkdir -p /ddospot/data && cd /ddospot/data && \
+    wget -q https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release/Country-without-asn.mmdb && \
+    wget -q https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release/Country-without-asn.mmdb.sha256sum && \
+    sha256sum -c Country-without-asn.mmdb.sha256sum && \
+    mv Country-without-asn.mmdb GeoIP.mmdb && \
+    rm Country-without-asn.mmdb.sha256sum
+
 # Fix permissions
 RUN chown ddospot:ddospot -R /ddospot
 

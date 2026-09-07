@@ -14,6 +14,7 @@ services:
       DDOSPOT_MAIL_SEC: ${DDOSPOT_MAIL_SEC:-}
       DDOSPOT_MAIL_FROM: ${DDOSPOT_MAIL_FROM:-}
       DDOSPOT_MAIL_TO: ${DDOSPOT_MAIL_TO:-}
+      DDOSPOT_GEOIP_DB: ${DDOSPOT_GEOIP_DB:-}
     volumes:
       - ./ddospot/bl:/ddospot/bl
       - ./ddospot/db:/ddospot/db

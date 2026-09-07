@@ -8,7 +8,6 @@ import threading
 import time
 
 import geoip2.database
-import _geoip_geolite2
 
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
@@ -54,9 +53,7 @@ class Alerter(object):
             self.logger.error('Error creating alerter: %s' % (msg))
 
         try:
-            db_path = os.path.join(
-                os.path.dirname(_geoip_geolite2.__file__),
-                _geoip_geolite2.database_name)
+            db_path = os.environ.get('DDOSPOT_GEOIP_DB') or 'data/GeoIP.mmdb'
             self.geoip_reader = geoip2.database.Reader(db_path)
         except Exception as msg:
             self.logger.error('Error initializing GeoIP reader: %s' % (msg))
@@ -85,7 +82,7 @@ class Alerter(object):
             return
 
         try:
-            response = self.geoip_reader.city(ip)
+            response = self.geoip_reader.country(ip)
             ip_country = response.country.iso_code
         except Exception:
             return
