@@ -32,6 +32,7 @@ class Alerter(object):
         mail_to = self._conf_or_env(conf, 'mail_to', 'DDOSPOT_MAIL_TO')
         self.mail_to_list = [e.strip() for e in mail_to.split(',')]
         self.mail_subject = conf.get('alerting', 'mail_subject')
+        self.honeypot_name = conf.get('alerting', 'honeypot_name', fallback=name)
         self.trigger_country_list = [e.strip() for e in conf.get('alerting', 'trigger_countries').split(',')]
         self.notification_rate = conf.getint('alerting', 'notification_rate')
         self.notification_allowance = float(self.notification_rate)
@@ -56,12 +57,20 @@ class Alerter(object):
             self.logger.error('Error creating alerter: %s' % (msg))
 
         try:
-            db_path = os.environ.get('DDOSPOT_GEOIP_DB') or 'db/GeoIP.mmdb'
-            self._ensure_geoip_db(db_path)
+            db_path = os.environ.get('DDOSPOT_GEOIP_DB') or 'db/GeoIP-Country.mmdb'
+            self._ensure_geoip_db(db_path, 'Country-without-asn.mmdb')
             self.geoip_reader = geoip2.database.Reader(db_path)
         except Exception as msg:
-            self.logger.error('Error initializing GeoIP reader: %s' % (msg))
+            self.logger.error('Error initializing GeoIP country reader: %s' % (msg))
             self.geoip_reader = None
+
+        try:
+            asn_path = os.environ.get('DDOSPOT_GEOIP_ASN_DB') or 'db/GeoIP-ASN.mmdb'
+            self._ensure_geoip_db(asn_path, 'GeoLite2-ASN.mmdb')
+            self.geoip_asn_reader = geoip2.database.Reader(asn_path)
+        except Exception as msg:
+            self.logger.error('Error initializing GeoIP ASN reader: %s' % (msg))
+            self.geoip_asn_reader = None
 
         t = threading.Thread(target=self._flush_notifications)
         t.daemon = True
@@ -74,11 +83,10 @@ class Alerter(object):
             return value
         return conf.get('alerting', option)
 
-    def _ensure_geoip_db(self, db_path):
+    def _ensure_geoip_db(self, db_path, src):
         if os.path.exists(db_path) and os.path.getsize(db_path) > 0:
             return
         base = 'https://cdn.jsdelivr.net/gh/Loyalsoldier/geoip@release'
-        src = 'Country-without-asn.mmdb'
         os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
         tmp = db_path + '.tmp'
         self.logger.info('GeoIP mmdb not found at %s, downloading from %s/%s' % (db_path, base, src))
@@ -105,14 +113,26 @@ class Alerter(object):
         try:
             response = self.geoip_reader.country(ip)
             ip_country = response.country.iso_code
+            ip_country_name = response.country.name
         except Exception:
             return
 
         if ip_country in self.trigger_country_list:
             host = self._get_host(ip)
 
+            asn_info = 'N/A'
+            if self.geoip_asn_reader:
+                try:
+                    asn_resp = self.geoip_asn_reader.asn(ip)
+                    asn_info = 'AS%d %s' % (asn_resp.autonomous_system_number, asn_resp.autonomous_system_organization)
+                except Exception:
+                    asn_info = 'N/A'
+
             if msg is None:
-                msg = '%s detected attack on %s (%s) port %d @ %s' % (self.name, ip, host, port, datetime.datetime.now())
+                msg = '[%s] %s detected attack on %s (%s) port %d | Country: %s (%s) | ASN: %s | %s' % (
+                    self.honeypot_name, self.name, ip, host, port,
+                    ip_country, ip_country_name, asn_info,
+                    datetime.datetime.now())
             self.notification_queue.append(msg)
 
     # rate limiting based on https://stackoverflow.com/questions/667508/whats-a-good-rate-limiting-algorithm#
