@@ -16,6 +16,7 @@ services:
       DDOSPOT_MAIL_TO: ${DDOSPOT_MAIL_TO:-}
       DDOSPOT_GEOIP_DB: ${DDOSPOT_GEOIP_DB:-}
       DDOSPOT_GEOIP_ASN_DB: ${DDOSPOT_GEOIP_ASN_DB:-}
+      DDOSPOT_HONEYPOT_NAME: ${DDOSPOT_HONEYPOT_NAME:-}
     volumes:
       - ./ddospot/bl:/ddospot/bl
       - ./ddospot/db:/ddospot/db

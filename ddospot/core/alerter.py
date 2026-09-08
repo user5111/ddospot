@@ -32,7 +32,7 @@ class Alerter(object):
         mail_to = self._conf_or_env(conf, 'mail_to', 'DDOSPOT_MAIL_TO')
         self.mail_to_list = [e.strip() for e in mail_to.split(',')]
         self.mail_subject = conf.get('alerting', 'mail_subject')
-        self.honeypot_name = conf.get('alerting', 'honeypot_name', fallback=name)
+        self.honeypot_name = os.environ.get('DDOSPOT_HONEYPOT_NAME') or name
         self.trigger_country_list = [e.strip() for e in conf.get('alerting', 'trigger_countries').split(',')]
         self.notification_rate = conf.getint('alerting', 'notification_rate')
         self.notification_allowance = float(self.notification_rate)
