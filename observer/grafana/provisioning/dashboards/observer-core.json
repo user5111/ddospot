@@ -1,0 +1,118 @@
+{
+  "title": "DDoSPot Observer - Attack Trends",
+  "uid": "ddospot-observer-core",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": {"from": "now-7d", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "node",
+        "type": "query",
+        "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+        "query": "SELECT DISTINCT node FROM events",
+        "includeAll": true,
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"}
+      },
+      {
+        "name": "country",
+        "type": "query",
+        "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+        "query": "SELECT DISTINCT country_code FROM events WHERE country_code != '??' ORDER BY country_code",
+        "includeAll": true,
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"}
+      },
+      {
+        "name": "pot",
+        "type": "query",
+        "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+        "query": "SELECT DISTINCT pot FROM events",
+        "includeAll": true,
+        "multi": true,
+        "current": {"text": "All", "value": "$__all"}
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Attack events over time by pot  (NOTE: src_ip may be spoofed victim in reflection attacks)",
+      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 0},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+          "format": "time_series",
+          "rawQuery": true,
+          "queryText": "SELECT (strftime('%s', start)) * 1000 AS time, pot AS metric, count(*) AS value FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote})) GROUP BY time, pot ORDER BY time"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {"unit": "short", "custom": {"drawStyle": "line", "lineInterpolation": "linear", "fillOpacity": 10}},
+        "overrides": []
+      },
+      "options": {
+        "legend": {"showLegend": true, "displayMode": "table", "placement": "right"}
+      }
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Total events (filtered)",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 12},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+          "format": "table",
+          "rawQuery": true,
+          "queryText": "SELECT count(*) as total FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote}))"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Unique attacker IPs (filtered)",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 12},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+          "format": "table",
+          "rawQuery": true,
+          "queryText": "SELECT count(DISTINCT src_ip) as ips FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote}))"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}}
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Top 10 source countries (filtered)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+          "format": "table",
+          "rawQuery": true,
+          "queryText": "SELECT country_code || ' ' || COALESCE(country_name,'?') as Country, count(*) as Events, count(DISTINCT src_ip) as Unique_IPs FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote})) GROUP BY country_code, country_name ORDER BY Events DESC LIMIT 10"
+        }
+      ],
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "options": {"showHeader": true}
+    }
+  ]
+}

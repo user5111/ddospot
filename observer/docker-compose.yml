@@ -1,0 +1,17 @@
+services:
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: ddospot-grafana
+    ports:
+      - "192.168.1.9:3001:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - GF_INSTALL_PLUGINS=frser-sqlite-datasource
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./warehouse.sqlite3:/var/lib/grafana/warehouse.sqlite3:ro
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    restart: unless-stopped
+volumes:
+  grafana-data:
