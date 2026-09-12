@@ -49,7 +49,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "time_series",
           "rawQuery": true,
-          "queryText": "SELECT (strftime('%s', start)) * 1000 AS time, pot AS metric, count(*) AS value FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote})) GROUP BY time, pot ORDER BY time"
+          "queryText": "SELECT (strftime('%s', start)) * 1000 AS time, pot AS metric, count(*) AS value FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote})) GROUP BY time, pot ORDER BY time"
         }
       ],
       "fieldConfig": {
@@ -72,7 +72,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "table",
           "rawQuery": true,
-          "queryText": "SELECT count(*) as total FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote}))"
+          "queryText": "SELECT count(*) as total FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote}))"
         }
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
@@ -90,7 +90,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "table",
           "rawQuery": true,
-          "queryText": "SELECT count(DISTINCT src_ip) as ips FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote}))"
+          "queryText": "SELECT count(DISTINCT src_ip) as ips FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote}))"
         }
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
@@ -108,7 +108,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "table",
           "rawQuery": true,
-          "queryText": "SELECT country_code || ' ' || COALESCE(country_name,'?') as Country, count(*) as Events, count(DISTINCT src_ip) as Unique_IPs FROM events WHERE $__timeFilter(start) AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote})) GROUP BY country_code, country_name ORDER BY Events DESC LIMIT 10"
+          "queryText": "SELECT country_code || ' ' || COALESCE(country_name,'?') as Country, count(*) as Events, count(DISTINCT src_ip) as Unique_IPs FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('${node}' = '$__all' OR node IN (${node:singlequote})) AND ('${country}' = '$__all' OR country_code IN (${country:singlequote})) AND ('${pot}' = '$__all' OR pot IN (${pot:singlequote})) GROUP BY country_code, country_name ORDER BY Events DESC LIMIT 10"
         }
       ],
       "fieldConfig": {"defaults": {}, "overrides": []},
