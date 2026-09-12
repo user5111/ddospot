@@ -2,40 +2,9 @@
   "title": "DDoSPot Observer - Attack Trends",
   "uid": "ddospot-observer-core",
   "schemaVersion": 39,
-  "version": 2,
+  "version": 6,
   "refresh": "1m",
   "time": {"from": "now-7d", "to": "now"},
-  "templating": {
-    "list": [
-      {
-        "name": "node",
-        "type": "query",
-        "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
-        "query": "SELECT DISTINCT node FROM events",
-        "includeAll": true,
-        "multi": false,
-        "current": {"text": "All", "value": "$__all"}
-      },
-      {
-        "name": "country",
-        "type": "query",
-        "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
-        "query": "SELECT DISTINCT country_code FROM events WHERE country_code != '??' ORDER BY country_code",
-        "includeAll": true,
-        "multi": false,
-        "current": {"text": "All", "value": "$__all"}
-      },
-      {
-        "name": "pot",
-        "type": "query",
-        "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
-        "query": "SELECT DISTINCT pot FROM events",
-        "includeAll": true,
-        "multi": false,
-        "current": {"text": "All", "value": "$__all"}
-      }
-    ]
-  },
   "panels": [
     {
       "id": 1,
@@ -49,7 +18,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "time_series",
           "rawQuery": true,
-          "queryText": "SELECT (strftime('%s', start)) * 1000 AS time, pot AS metric, count(*) AS value FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('$node' = '$__all' OR node = '$node') AND ('$country' = '$__all' OR country_code = '$country') AND ('$pot' = '$__all' OR pot = '$pot') GROUP BY time, pot ORDER BY time"
+          "queryText": "SELECT (strftime('%s', start)) * 1000 AS time, pot AS metric, count(*) AS value FROM events WHERE start >= datetime('now', '-7 days') GROUP BY time, pot ORDER BY time"
         }
       ],
       "fieldConfig": {
@@ -63,8 +32,8 @@
     {
       "id": 2,
       "type": "stat",
-      "title": "Total events (filtered)",
-      "gridPos": {"h": 4, "w": 8, "x": 0, "y": 12},
+      "title": "Total events (7d)",
+      "gridPos": {"h": 4, "w": 6, "x": 0, "y": 12},
       "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
       "targets": [
         {
@@ -72,7 +41,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "table",
           "rawQuery": true,
-          "queryText": "SELECT count(*) as total FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('$node' = '$__all' OR node = '$node') AND ('$country' = '$__all' OR country_code = '$country') AND ('$pot' = '$__all' OR pot = '$pot')"
+          "queryText": "SELECT count(*) as total FROM events WHERE start >= datetime('now', '-7 days')"
         }
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
@@ -81,8 +50,8 @@
     {
       "id": 3,
       "type": "stat",
-      "title": "Unique attacker IPs (filtered)",
-      "gridPos": {"h": 4, "w": 8, "x": 8, "y": 12},
+      "title": "Unique attacker IPs (7d)",
+      "gridPos": {"h": 4, "w": 6, "x": 6, "y": 12},
       "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
       "targets": [
         {
@@ -90,7 +59,7 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "table",
           "rawQuery": true,
-          "queryText": "SELECT count(DISTINCT src_ip) as ips FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('$node' = '$__all' OR node = '$node') AND ('$country' = '$__all' OR country_code = '$country') AND ('$pot' = '$__all' OR pot = '$pot')"
+          "queryText": "SELECT count(DISTINCT src_ip) as ips FROM events WHERE start >= datetime('now', '-7 days')"
         }
       ],
       "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
@@ -98,9 +67,9 @@
     },
     {
       "id": 4,
-      "type": "table",
-      "title": "Top 10 source countries (filtered)",
-      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 12},
+      "type": "stat",
+      "title": "Active honeypot nodes",
+      "gridPos": {"h": 4, "w": 6, "x": 12, "y": 12},
       "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
       "targets": [
         {
@@ -108,7 +77,43 @@
           "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
           "format": "table",
           "rawQuery": true,
-          "queryText": "SELECT country_code || ' ' || COALESCE(country_name,'?') as Country, count(*) as Events, count(DISTINCT src_ip) as Unique_IPs FROM events WHERE start >= datetime($__from/1000, 'unixepoch') AND start <= datetime($__to/1000, 'unixepoch') AND ('$node' = '$__all' OR node = '$node') AND ('$country' = '$__all' OR country_code = '$country') AND ('$pot' = '$__all' OR pot = '$pot') GROUP BY country_code, country_name ORDER BY Events DESC LIMIT 10"
+          "queryText": "SELECT count(DISTINCT node) as nodes FROM events WHERE start >= datetime('now', '-7 days')"
+        }
+      ],
+      "fieldConfig": {"defaults": {"unit": "short"}, "overrides": []},
+      "options": {"reduceOptions": {"values": false, "calcs": ["lastNotNull"], "fields": ""}}
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Top 10 source countries (7d)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+          "format": "table",
+          "rawQuery": true,
+          "queryText": "SELECT country_code || ' ' || COALESCE(country_name,'?') as Country, count(*) as Events, count(DISTINCT src_ip) as Unique_IPs FROM events WHERE start >= datetime('now', '-7 days') GROUP BY country_code, country_name ORDER BY Events DESC LIMIT 10"
+        }
+      ],
+      "fieldConfig": {"defaults": {}, "overrides": []},
+      "options": {"showHeader": true}
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Events by node and pot (7d)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "frser-sqlite-datasource", "uid": "DDoSPotWarehouse"},
+          "format": "table",
+          "rawQuery": true,
+          "queryText": "SELECT node as Node, pot as Pot, count(*) as Events, count(DISTINCT src_ip) as Unique_IPs FROM events WHERE start >= datetime('now', '-7 days') GROUP BY node, pot ORDER BY Events DESC"
         }
       ],
       "fieldConfig": {"defaults": {}, "overrides": []},
