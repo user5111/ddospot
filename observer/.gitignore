@@ -1,5 +1,0 @@
-config.yaml
-data/
-*.sqlite3
-collector.log
-__pycache__/

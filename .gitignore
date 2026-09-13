@@ -7,4 +7,4 @@ env/
 env1/
 env2/
 .env
-observer/config.yaml
+.pytest_cache
