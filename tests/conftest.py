@@ -1,7 +1,23 @@
 import pytest
 import sqlite3
 import os
+import sys
 import tempfile
+import types
+
+# Python 3.12 removed the stdlib `imp` module; core/spf.py (pre-existing) still
+# imports it at module load time. Tests that import the pots package pull in
+# spf indirectly. Provide a minimal shim so the import chain succeeds.
+# spf.load_plugins() is never invoked during tests, so stubs are sufficient.
+if 'imp' not in sys.modules:
+    _imp_shim = types.ModuleType('imp')
+
+    def _imp_not_implemented(*args, **kwargs):
+        raise NotImplementedError('imp shim: spf.load_plugins not supported in tests')
+
+    _imp_shim.find_module = _imp_not_implemented
+    _imp_shim.load_module = _imp_not_implemented
+    sys.modules['imp'] = _imp_shim
 
 
 @pytest.fixture
