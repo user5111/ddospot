@@ -72,12 +72,9 @@ class GeoIPResolver:
    注意各 pot 存 IP 形式不同：DNS/NTP/SSDP/chargen/generic 的 `db_params['ip']` 均已是整数（由 pot handler 的 `utils.addr_to_int()` 转换），DBThread 内需 `utils.int_to_addr()` 还原后查询。
 3. `_create_dbthread` 调用处（各 pot 的 `*pot.py`）传入 resolver——resolver 在 PotLoader.setup 阶段创建一次，共享给 5 个 pot。
 
-resolver 创建位置：`potloader.py` 的 `_setup_dbthread()` 中（在创建 DBThread 之前）：
-```python
-from core.geoip import GeoIPResolver, ensure_dbs
-ensure_dbs(...)  # 失败时 resolver 为 None，蜜罐继续跑（GeoIP 是增强非必需）
-self.geoip_resolver = GeoIPResolver(...)
-```
+resolver 创建与传递链路（无需改任何方法签名）：
+- `potloader.py` 的 `_setup_dbthread()`：先 `ensure_dbs()` + 创建 `self.geoip_resolver`（mmdb 不可用时为 None，蜜罐照常运行），再调用 `self._create_dbthread(dbfile, interval)`
+- 各 pot 的 `_create_dbthread()` 实现里（如 `ntpot.py:32`）通过 `self.geoip_resolver` 取值，作为参数传给 `DBThread(...)`
 
 ### 新增 `ddospot/migrate_geoip.py`（一次性迁移脚本）
 
