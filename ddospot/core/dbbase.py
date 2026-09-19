@@ -26,7 +26,8 @@ class DBBaseThread(threading.Thread, metaclass=abc.ABCMeta):
                 log_queue,
                 output_queue,
                 stop_event,
-                new_attack_interval
+                new_attack_interval,
+                geoip_resolver=None
                 ):
         threading.Thread.__init__(self)
         if not dbfile.startswith('sqlite:///'):
@@ -37,6 +38,7 @@ class DBBaseThread(threading.Thread, metaclass=abc.ABCMeta):
         self.logger = logging.getLogger(logger_name)
         self.stop_event = stop_event
         self.new_attack_interval = datetime.timedelta(minutes=new_attack_interval)
+        self.geoip_resolver = geoip_resolver
 
         # setup database
         self.engine = create_engine(self.dbfile)

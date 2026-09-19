@@ -34,7 +34,8 @@ class CgenPot(potloader.PotLoader):
                         self.log_queue,
                         self.output_queue,
                         self.stop_event,
-                        new_attack_interval
+                        new_attack_interval,
+                        getattr(self, 'geoip_resolver', None)
                         )
 
     def _start_server(self):

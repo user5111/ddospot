@@ -64,7 +64,8 @@ class DBThread(dbbase.DBBaseThread):
                 log_queue,
                 output_queue,
                 stop_event,
-                new_attack_interval
+                new_attack_interval,
+                geoip_resolver=None
                 ):
         dbbase.DBBaseThread.__init__(
                                         self,
@@ -74,7 +75,8 @@ class DBThread(dbbase.DBBaseThread):
                                         log_queue,
                                         output_queue,
                                         stop_event,
-                                        new_attack_interval
+                                        new_attack_interval,
+                                        geoip_resolver
                                     )
 
     def _add_attack(self, db_params):

@@ -256,6 +256,20 @@ class PotLoader(object, metaclass=spf.MountPoint):
         self.stop_event = threading.Event()
         self.stop_event.clear()
         dbfile = self.conf.get('logging', 'sqlitedb')
+
+        # 初始化 GeoIP resolver（可选增强；失败时 None，蜜罐照常运行）
+        self.geoip_resolver = None
+        try:
+            import os
+            from core.geoip import ensure_dbs, GeoIPResolver
+            country_path = os.environ.get('DDOSPOT_GEOIP_DB') or 'db/GeoIP-Country.mmdb'
+            asn_path = os.environ.get('DDOSPOT_GEOIP_ASN_DB') or 'db/GeoIP-ASN.mmdb'
+            ensure_dbs(country_path, asn_path)
+            self.geoip_resolver = GeoIPResolver(country_path, asn_path)
+        except Exception as msg:
+            if self.logger:
+                self.logger.error('GeoIP resolver init failed (honeypot will run without geo data): %s' % msg)
+
         self.dbthread = self._create_dbthread(dbfile, attack_interval)
         self.dbthread.start()
 
