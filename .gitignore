@@ -8,3 +8,4 @@ env1/
 env2/
 .env
 .pytest_cache
+.superpowers/
