@@ -46,6 +46,10 @@ class DBThread(dbbase.DBBaseThread):
         src_port = Column(Integer)
         first_seen = Column(DateTime, default=datetime.datetime.now())
         last_seen = Column(DateTime, default=datetime.datetime.now())
+        country_code = Column(String(2))
+        country_name = Column(String(64))
+        asn = Column(Integer)
+        asn_org = Column(String(255))
 
     class Domain(Base):
         __tablename__ = 'dnspot_domains'
@@ -93,11 +97,22 @@ class DBThread(dbbase.DBBaseThread):
                       filter(DBThread.Domain.dns_cls == db_params['dns_class']).one_or_none()
 
         if not source:
+            # db_params['ip'] 是字符串（DNS pot 特有），直接用于 GeoIP 查询
+            geo = {'country_code': None, 'country_name': None, 'asn': None, 'asn_org': None}
+            if self.geoip_resolver:
+                try:
+                    geo = self.geoip_resolver.resolve(db_params['ip'])
+                except Exception as msg:
+                    self.logger.error('GeoIP resolve failed for %s: %s' % (db_params['ip'], msg))
             source = DBThread.Source(
                                     src_ip=addr_int,
                                     src_port=db_params['port'],
                                     first_seen=db_params['time'],
-                                    last_seen=db_params['time']
+                                    last_seen=db_params['time'],
+                                    country_code=geo['country_code'],
+                                    country_name=geo['country_name'],
+                                    asn=geo['asn'],
+                                    asn_org=geo['asn_org']
                                     )
             self.session.add(source)
             self.session.commit()

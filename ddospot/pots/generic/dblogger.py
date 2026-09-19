@@ -4,7 +4,7 @@ import datetime
 
 try:
     from sqlalchemy.ext.declarative import declarative_base
-    from sqlalchemy import Column, ForeignKey, Integer, BigInteger, DateTime, LargeBinary
+    from sqlalchemy import Column, ForeignKey, Integer, BigInteger, String, DateTime, LargeBinary
     from sqlalchemy.orm import relationship
     from sqlalchemy import func, distinct, desc
 except ImportError as e:
@@ -26,6 +26,10 @@ class DBThread(dbbase.DBBaseThread):
         src_port = Column(Integer)
         first_seen = Column(DateTime, default=datetime.datetime.now())
         last_seen = Column(DateTime, default=datetime.datetime.now())
+        country_code = Column(String(2))
+        country_name = Column(String(64))
+        asn = Column(Integer)
+        asn_org = Column(String(255))
 
     class Attack(Base):
         __tablename__ = 'genericpot_attack'
@@ -67,11 +71,23 @@ class DBThread(dbbase.DBBaseThread):
         source = self.session.query(DBThread.Source).\
                 filter(DBThread.Source.src_ip == db_params['ip']).one_or_none()
         if not source:
+            geo = {'country_code': None, 'country_name': None, 'asn': None, 'asn_org': None}
+            if self.geoip_resolver:
+                try:
+                    import core.utils as utils
+                    ip_str = utils.int_to_addr(db_params['ip'])
+                    geo = self.geoip_resolver.resolve(ip_str)
+                except Exception as msg:
+                    self.logger.error('GeoIP resolve failed for %s: %s' % (db_params['ip'], msg))
             source = DBThread.Source(
                                     src_ip=db_params['ip'],
                                     src_port=db_params['port'],
                                     first_seen=db_params['time'],
-                                    last_seen=db_params['time']
+                                    last_seen=db_params['time'],
+                                    country_code=geo['country_code'],
+                                    country_name=geo['country_name'],
+                                    asn=geo['asn'],
+                                    asn_org=geo['asn_org']
                                     )
             self.session.add(source)
         else:
