@@ -128,7 +128,7 @@ def main(argv=None):
         try:
             migrate_db(db_path, resolver)
         except Exception as msg:
-            LOGGER.error('Error migrating %s: %s' % (db_path, msg))
+            LOGGER.error('Error migrating %s: %s' % (db_path, msg), exc_info=True)
 
     LOGGER.info('Migration complete')
 
